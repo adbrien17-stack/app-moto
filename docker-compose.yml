@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: moto-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: moto
+      POSTGRES_PASSWORD: moto
+      POSTGRES_DB: moto_app
+    ports:
+      - "5433:5432"
+    volumes:
+      - moto_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  moto_postgres_data:
