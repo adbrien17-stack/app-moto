@@ -1,5 +1,6 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { CreateRideDto, RidesService } from './rides.service';
+import type { CreateRideDto } from './rides.service';
+import { RidesService } from './rides.service';
 
 @Controller('rides')
 export class RidesController {
