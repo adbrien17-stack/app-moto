@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { API_BASE_URL } from '@/constants/api';
 import { Novaride } from '@/constants/theme';
+import RideMap from '@/components/ride-map';
 
 type RidePoint = {
   latitude: number;
@@ -126,6 +127,14 @@ export default function HomeScreen() {
           <Text style={styles.brand}>NOVARIDE</Text>
           <Text style={styles.tagline}>Performance. Liberté. Données.</Text>
         </View>
+
+        {/* Carte */}
+        <RideMap
+          currentLocation={
+            lastPoint ?? (location ? { latitude: location.coords.latitude, longitude: location.coords.longitude } : null)
+          }
+          ridePoints={ridePoints}
+        />
 
         {/* Ride en cours */}
         {isRiding && (
