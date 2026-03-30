@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -10,4 +5,89 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+model Ride {
+  id              String   @id @default(cuid())
+  userId          String?
+  startedAt       DateTime
+  endedAt         DateTime
+  status          String   @default("completed")
+  pointsCount     Int      @default(0)
+  distanceMeters  Float    @default(0)
+  durationSeconds Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  points         RidePoint[]
+  segmentMatches RideSegmentMatch[]
+}
+
+model RidePoint {
+  id        String   @id @default(cuid())
+  rideId    String
+  latitude  Float
+  longitude Float
+  timestamp DateTime
+  accuracy  Float?
+  speed     Float?
+  heading   Float?
+  sequence  Int
+
+  ride Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
+
+  @@index([rideId])
+}
+
+model RoadSegment {
+  id                String   @id @default(cuid())
+  name              String?
+  roadType          String?
+  surfaceType       String?
+  startLat          Float
+  startLng          Float
+  endLat            Float
+  endLng            Float
+  lengthMeters      Float
+  curvatureScore    Float?
+  elevationScore    Float?
+  isScenicPotential Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  rideMatches RideSegmentMatch[]
+  score       SegmentScore?
+}
+
+model RideSegmentMatch {
+  id                    String    @id @default(cuid())
+  rideId                String
+  segmentId             String
+  entryTime             DateTime?
+  exitTime              DateTime?
+  matchedDistanceMeters Float
+  avgSpeed              Float?
+  confidence            Float?
+
+  ride    Ride        @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  segment RoadSegment @relation(fields: [segmentId], references: [id])
+
+  @@index([rideId])
+  @@index([segmentId])
+}
+
+model SegmentScore {
+  segmentId       String   @id
+  globalScore     Float    @default(0)
+  funScore        Float    @default(0)
+  scenicScore     Float    @default(0)
+  surfaceScore    Float    @default(0)
+  dangerScore     Float    @default(0)
+  confidenceScore Float    @default(0)
+  popularityScore Float    @default(0)
+  freshnessScore  Float    @default(0)
+  ridesCount      Int      @default(0)
+  lastRideAt      DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  segment RoadSegment @relation(fields: [segmentId], references: [id])
 }
