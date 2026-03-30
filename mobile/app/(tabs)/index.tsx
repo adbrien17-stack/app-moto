@@ -1,5 +1,5 @@
 import * as Location from 'expo-location';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ScrollView,
   StatusBar,
@@ -13,11 +13,25 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { API_BASE_URL } from '@/constants/api';
 import { Novaride } from '@/constants/theme';
 
+type RidePoint = {
+  latitude: number;
+  longitude: number;
+  timestamp: number;
+};
+
 export default function HomeScreen() {
   const [apiResponse, setApiResponse] = useState<string>('...');
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [locationLoading, setLocationLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
+
+  const [isRiding, setIsRiding] = useState(false);
+  const [ridePoints, setRidePoints] = useState<RidePoint[]>([]);
+  const [rideStartTime, setRideStartTime] = useState<Date | null>(null);
+  const [rideEndTime, setRideEndTime] = useState<Date | null>(null);
+  const [lastPoint, setLastPoint] = useState<RidePoint | null>(null);
+
+  const watchRef = useRef<Location.LocationSubscription | null>(null);
 
   useEffect(() => {
     fetch(API_BASE_URL)
@@ -40,6 +54,37 @@ export default function HomeScreen() {
     })();
   }, []);
 
+  async function startRide() {
+    setRidePoints([]);
+    setLastPoint(null);
+    setRideEndTime(null);
+    setRideStartTime(new Date());
+    setIsRiding(true);
+
+    watchRef.current = await Location.watchPositionAsync(
+      { accuracy: Location.Accuracy.High, distanceInterval: 5 },
+      (pos) => {
+        const point: RidePoint = {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          timestamp: pos.timestamp,
+        };
+        setRidePoints((prev) => [...prev, point]);
+        setLastPoint(point);
+      },
+    );
+  }
+
+  function stopRide() {
+    watchRef.current?.remove();
+    watchRef.current = null;
+    setIsRiding(false);
+    setRideEndTime(new Date());
+  }
+
+  const fmt = (d: Date) =>
+    d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={Novaride.bg} />
@@ -51,35 +96,89 @@ export default function HomeScreen() {
           <Text style={styles.tagline}>Performance. Liberté. Données.</Text>
         </View>
 
-        {/* GPS Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.dot, { backgroundColor: Novaride.secondary }]} />
-            <Text style={styles.cardTitle}>Position GPS</Text>
-          </View>
-          {locationLoading && (
-            <Text style={styles.muted}>Récupération en cours...</Text>
-          )}
-          {locationError && (
-            <Text style={styles.error}>{locationError}</Text>
-          )}
-          {location && (
-            <View style={styles.coords}>
-              <View style={styles.coordRow}>
-                <Text style={styles.coordLabel}>LAT</Text>
-                <Text style={styles.coordValue}>
-                  {location.coords.latitude.toFixed(6)}
-                </Text>
-              </View>
-              <View style={styles.coordRow}>
-                <Text style={styles.coordLabel}>LNG</Text>
-                <Text style={styles.coordValue}>
-                  {location.coords.longitude.toFixed(6)}
-                </Text>
-              </View>
+        {/* Ride en cours */}
+        {isRiding && (
+          <View style={[styles.card, styles.cardActive]}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.dot, { backgroundColor: '#22c55e' }]} />
+              <Text style={[styles.cardTitle, { color: '#22c55e' }]}>Ride en cours</Text>
             </View>
-          )}
-        </View>
+            <View style={styles.statRow}>
+              <Text style={styles.statLabel}>DÉBUT</Text>
+              <Text style={styles.statValue}>{rideStartTime ? fmt(rideStartTime) : '—'}</Text>
+            </View>
+            <View style={styles.statRow}>
+              <Text style={styles.statLabel}>POINTS</Text>
+              <Text style={styles.statValue}>{ridePoints.length}</Text>
+            </View>
+            {lastPoint && (
+              <>
+                <View style={styles.statRow}>
+                  <Text style={styles.statLabel}>LAT</Text>
+                  <Text style={styles.statValue}>{lastPoint.latitude.toFixed(6)}</Text>
+                </View>
+                <View style={styles.statRow}>
+                  <Text style={styles.statLabel}>LNG</Text>
+                  <Text style={styles.statValue}>{lastPoint.longitude.toFixed(6)}</Text>
+                </View>
+              </>
+            )}
+          </View>
+        )}
+
+        {/* Résumé ride terminée */}
+        {!isRiding && rideEndTime && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.dot, { backgroundColor: Novaride.secondary }]} />
+              <Text style={styles.cardTitle}>Ride terminée</Text>
+            </View>
+            <View style={styles.statRow}>
+              <Text style={styles.statLabel}>DÉBUT</Text>
+              <Text style={styles.statValue}>{rideStartTime ? fmt(rideStartTime) : '—'}</Text>
+            </View>
+            <View style={styles.statRow}>
+              <Text style={styles.statLabel}>FIN</Text>
+              <Text style={styles.statValue}>{fmt(rideEndTime)}</Text>
+            </View>
+            <View style={styles.statRow}>
+              <Text style={styles.statLabel}>POINTS</Text>
+              <Text style={styles.statValue}>{ridePoints.length}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* GPS Card — masquée pendant la ride */}
+        {!isRiding && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.dot, { backgroundColor: Novaride.secondary }]} />
+              <Text style={styles.cardTitle}>Position GPS</Text>
+            </View>
+            {locationLoading && (
+              <Text style={styles.muted}>Récupération en cours...</Text>
+            )}
+            {locationError && (
+              <Text style={styles.error}>{locationError}</Text>
+            )}
+            {location && (
+              <View style={styles.coords}>
+                <View style={styles.coordRow}>
+                  <Text style={styles.coordLabel}>LAT</Text>
+                  <Text style={styles.coordValue}>
+                    {location.coords.latitude.toFixed(6)}
+                  </Text>
+                </View>
+                <View style={styles.coordRow}>
+                  <Text style={styles.coordLabel}>LNG</Text>
+                  <Text style={styles.coordValue}>
+                    {location.coords.longitude.toFixed(6)}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Backend Card */}
         <View style={styles.card}>
@@ -91,9 +190,20 @@ export default function HomeScreen() {
         </View>
 
         {/* CTA */}
-        <TouchableOpacity style={styles.cta} activeOpacity={0.8} disabled>
-          <Text style={styles.ctaText}>Démarrer une ride</Text>
-        </TouchableOpacity>
+        {isRiding ? (
+          <TouchableOpacity style={[styles.cta, styles.ctaStop]} activeOpacity={0.8} onPress={stopRide}>
+            <Text style={styles.ctaText}>Arrêter la ride</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.cta, locationError ? styles.ctaDisabled : null]}
+            activeOpacity={0.8}
+            onPress={startRide}
+            disabled={!!locationError}
+          >
+            <Text style={styles.ctaText}>Démarrer une ride</Text>
+          </TouchableOpacity>
+        )}
 
       </ScrollView>
     </SafeAreaView>
@@ -133,6 +243,9 @@ const styles = StyleSheet.create({
     borderColor: Novaride.border,
     gap: 12,
   },
+  cardActive: {
+    borderColor: '#16a34a',
+  },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -149,6 +262,24 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     textTransform: 'uppercase',
     color: Novaride.textMuted,
+  },
+  statRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 12,
+  },
+  statLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 2,
+    color: Novaride.textMuted,
+    width: 52,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '300',
+    color: Novaride.textMain,
+    letterSpacing: 1,
   },
   muted: {
     fontSize: 14,
@@ -185,6 +316,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 18,
     alignItems: 'center',
+  },
+  ctaStop: {
+    backgroundColor: '#dc2626',
+  },
+  ctaDisabled: {
     opacity: 0.4,
   },
   ctaText: {
