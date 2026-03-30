@@ -10,9 +10,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import RideMap from '@/components/ride-map';
 import { API_BASE_URL } from '@/constants/api';
 import { Novaride } from '@/constants/theme';
-import RideMap from '@/components/ride-map';
 
 type RidePoint = {
   latitude: number;
@@ -124,7 +124,11 @@ export default function HomeScreen() {
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.brand}>NOVARIDE</Text>
+          <View style={styles.logoRow}>
+            {/* Logo mark — cercle orange bordé cyan, cf. HTML conic-gradient */}
+            <View style={styles.logoMark} />
+            <Text style={styles.brand}>NOVARIDE</Text>
+          </View>
           <Text style={styles.tagline}>Performance. Liberté. Données.</Text>
         </View>
 
@@ -140,7 +144,7 @@ export default function HomeScreen() {
         {isRiding && (
           <View style={[styles.card, styles.cardActive]}>
             <View style={styles.cardHeader}>
-              <View style={[styles.dot, { backgroundColor: '#22c55e' }]} />
+              <View style={[styles.dot, styles.dotLive]} />
               <Text style={[styles.cardTitle, { color: '#22c55e' }]}>Ride en cours</Text>
             </View>
             <View style={styles.statRow}>
@@ -240,13 +244,13 @@ export default function HomeScreen() {
 
         {/* CTA */}
         {isRiding ? (
-          <TouchableOpacity style={[styles.cta, styles.ctaStop]} activeOpacity={0.8} onPress={stopRide}>
+          <TouchableOpacity style={[styles.cta, styles.ctaStop]} activeOpacity={0.85} onPress={stopRide}>
             <Text style={styles.ctaText}>Arrêter la ride</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
             style={[styles.cta, locationError ? styles.ctaDisabled : null]}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
             onPress={startRide}
             disabled={!!locationError}
           >
@@ -268,27 +272,48 @@ const styles = StyleSheet.create({
     padding: 24,
     gap: 16,
   },
+
+  // ── Header ────────────────────────────────────────────────────
   header: {
     marginBottom: 8,
   },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 4,
+  },
+  // Cercle bicolore — simplifié depuis le conic-gradient HTML
+  logoMark: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: Novaride.primary,
+    borderWidth: 2,
+    borderColor: Novaride.secondary,
+  },
   brand: {
-    fontSize: 42,
+    fontSize: 38,
     fontWeight: '900',
-    letterSpacing: 6,
+    // Lettersspacing serré — HTML utilise letter-spacing: -0.02em
+    letterSpacing: 2,
     color: Novaride.primary,
   },
   tagline: {
-    fontSize: 13,
-    letterSpacing: 2,
+    fontSize: 11,
+    letterSpacing: 2.5,
     color: Novaride.textMuted,
-    marginTop: 4,
     textTransform: 'uppercase',
   },
+
+  // ── Glass Cards — cf. HTML .glass-card ────────────────────────
   card: {
-    backgroundColor: Novaride.panel,
-    borderRadius: 16,
+    // Semi-transparent — HTML: background: rgba(20,23,32,0.6), backdrop-filter: blur(20px)
+    backgroundColor: Novaride.glass,
+    borderRadius: 24,
     padding: 20,
     borderWidth: 1,
+    // Bordure subtile blanche — HTML: border: 1px solid rgba(255,255,255,0.08)
     borderColor: Novaride.border,
     gap: 12,
   },
@@ -305,13 +330,18 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
+  dotLive: {
+    backgroundColor: '#22c55e',
+  },
   cardTitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     letterSpacing: 2,
     textTransform: 'uppercase',
     color: Novaride.textMuted,
   },
+
+  // ── Stats ──────────────────────────────────────────────────────
   statRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
@@ -330,6 +360,8 @@ const styles = StyleSheet.create({
     color: Novaride.textMain,
     letterSpacing: 1,
   },
+
+  // ── Text ──────────────────────────────────────────────────────
   muted: {
     fontSize: 14,
     color: Novaride.textMuted,
@@ -342,6 +374,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#22c55e',
   },
+
+  // ── Coords ────────────────────────────────────────────────────
   coords: {
     gap: 8,
   },
@@ -363,21 +397,33 @@ const styles = StyleSheet.create({
     color: Novaride.textMain,
     letterSpacing: 1,
   },
+
+  // ── CTA — cf. HTML .btn .btn-primary (pill + glow) ────────────
   cta: {
     marginTop: 8,
     backgroundColor: Novaride.primary,
-    borderRadius: 12,
+    // Pill shape — HTML: border-radius: 50px
+    borderRadius: 50,
     paddingVertical: 18,
     alignItems: 'center',
+    // Glow — HTML: box-shadow: 0 4px 20px rgba(255,94,0,0.4)
+    shadowColor: Novaride.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.45,
+    shadowRadius: 16,
+    elevation: 8,
   },
   ctaStop: {
     backgroundColor: '#dc2626',
+    shadowColor: '#dc2626',
   },
   ctaDisabled: {
     opacity: 0.4,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   ctaText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     letterSpacing: 2,
     textTransform: 'uppercase',

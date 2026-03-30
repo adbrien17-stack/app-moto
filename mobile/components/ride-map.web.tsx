@@ -33,8 +33,9 @@ export default function RideMap({ currentLocation, ridePoints }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Novaride.panel,
-    borderRadius: 16,
+    // Glass card — correspond au HTML .glass-card
+    backgroundColor: Novaride.glass,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: Novaride.border,
     height: 220,
@@ -46,6 +47,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
+    textTransform: 'uppercase',
     color: Novaride.textMuted,
   },
   notice: {

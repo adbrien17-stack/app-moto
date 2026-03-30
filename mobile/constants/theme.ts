@@ -25,11 +25,16 @@ export const Colors = {
 export const Novaride = {
   bg: '#090b10',
   panel: '#141720',
+  // Semi-transparent card background — matches HTML --bg-glass
+  glass: 'rgba(20, 23, 32, 0.85)',
   primary: '#ff5e00',
+  // Primary glow used for button shadows
+  primaryGlow: 'rgba(255, 94, 0, 0.4)',
   secondary: '#00e1ff',
   textMain: '#f3f4f6',
   textMuted: '#9ca3af',
-  border: '#1e2330',
+  // Subtle white border — matches HTML --border-light
+  border: 'rgba(255, 255, 255, 0.08)',
 };
 
 export const Fonts = Platform.select({
