@@ -30,8 +30,10 @@ export default function HomeScreen() {
   const [rideStartTime, setRideStartTime] = useState<Date | null>(null);
   const [rideEndTime, setRideEndTime] = useState<Date | null>(null);
   const [lastPoint, setLastPoint] = useState<RidePoint | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
 
   const watchRef = useRef<Location.LocationSubscription | null>(null);
+  const ridePointsRef = useRef<RidePoint[]>([]);
 
   useEffect(() => {
     fetch(API_BASE_URL)
@@ -55,9 +57,11 @@ export default function HomeScreen() {
   }, []);
 
   async function startRide() {
+    ridePointsRef.current = [];
     setRidePoints([]);
     setLastPoint(null);
     setRideEndTime(null);
+    setUploadStatus('idle');
     setRideStartTime(new Date());
     setIsRiding(true);
 
@@ -69,17 +73,37 @@ export default function HomeScreen() {
           longitude: pos.coords.longitude,
           timestamp: pos.timestamp,
         };
-        setRidePoints((prev) => [...prev, point]);
+        ridePointsRef.current = [...ridePointsRef.current, point];
+        setRidePoints(ridePointsRef.current);
         setLastPoint(point);
       },
     );
   }
 
-  function stopRide() {
+  async function stopRide() {
     watchRef.current?.remove();
     watchRef.current = null;
+
+    const endTime = new Date();
     setIsRiding(false);
-    setRideEndTime(new Date());
+    setRideEndTime(endTime);
+    setUploadStatus('uploading');
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/rides`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startTime: rideStartTime?.toISOString() ?? '',
+          endTime: endTime.toISOString(),
+          points: ridePointsRef.current,
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setUploadStatus('success');
+    } catch {
+      setUploadStatus('error');
+    }
   }
 
   const fmt = (d: Date) =>
@@ -145,6 +169,15 @@ export default function HomeScreen() {
               <Text style={styles.statLabel}>POINTS</Text>
               <Text style={styles.statValue}>{ridePoints.length}</Text>
             </View>
+            {uploadStatus === 'uploading' && (
+              <Text style={styles.muted}>Envoi en cours...</Text>
+            )}
+            {uploadStatus === 'success' && (
+              <Text style={styles.uploadSuccess}>Ride enregistrée</Text>
+            )}
+            {uploadStatus === 'error' && (
+              <Text style={styles.error}>Erreur d'envoi</Text>
+            )}
           </View>
         )}
 
@@ -288,6 +321,10 @@ const styles = StyleSheet.create({
   error: {
     fontSize: 14,
     color: '#ef4444',
+  },
+  uploadSuccess: {
+    fontSize: 14,
+    color: '#22c55e',
   },
   coords: {
     gap: 8,
