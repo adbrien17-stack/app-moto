@@ -1,15 +1,20 @@
 import * as Location from 'expo-location';
-import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import {
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { API_BASE_URL } from '@/constants/api';
+import { Novaride } from '@/constants/theme';
 
 export default function HomeScreen() {
-  const [apiResponse, setApiResponse] = useState<string>('Chargement...');
+  const [apiResponse, setApiResponse] = useState<string>('...');
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [locationLoading, setLocationLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -25,7 +30,7 @@ export default function HomeScreen() {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setLocationError('Permission de géolocalisation refusée.');
+        setLocationError('Permission refusée');
         setLocationLoading(false);
         return;
       }
@@ -36,51 +41,157 @@ export default function HomeScreen() {
   }, []);
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">App Moto</ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Réponse du backend</ThemedText>
-        <ThemedText>{apiResponse}</ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Position GPS</ThemedText>
-        {locationLoading && <ThemedText>Récupération de la position...</ThemedText>}
-        {locationError && <ThemedText>{locationError}</ThemedText>}
-        {location && (
-          <>
-            <ThemedText>Latitude : {location.coords.latitude.toFixed(6)}</ThemedText>
-            <ThemedText>Longitude : {location.coords.longitude.toFixed(6)}</ThemedText>
-          </>
-        )}
-      </ThemedView>
-    </ParallaxScrollView>
+    <SafeAreaView style={styles.safe}>
+      <StatusBar barStyle="light-content" backgroundColor={Novaride.bg} />
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.brand}>NOVARIDE</Text>
+          <Text style={styles.tagline}>Performance. Liberté. Données.</Text>
+        </View>
+
+        {/* GPS Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.dot, { backgroundColor: Novaride.secondary }]} />
+            <Text style={styles.cardTitle}>Position GPS</Text>
+          </View>
+          {locationLoading && (
+            <Text style={styles.muted}>Récupération en cours...</Text>
+          )}
+          {locationError && (
+            <Text style={styles.error}>{locationError}</Text>
+          )}
+          {location && (
+            <View style={styles.coords}>
+              <View style={styles.coordRow}>
+                <Text style={styles.coordLabel}>LAT</Text>
+                <Text style={styles.coordValue}>
+                  {location.coords.latitude.toFixed(6)}
+                </Text>
+              </View>
+              <View style={styles.coordRow}>
+                <Text style={styles.coordLabel}>LNG</Text>
+                <Text style={styles.coordValue}>
+                  {location.coords.longitude.toFixed(6)}
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Backend Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.dot, { backgroundColor: Novaride.primary }]} />
+            <Text style={styles.cardTitle}>Statut backend</Text>
+          </View>
+          <Text style={styles.muted}>{apiResponse}</Text>
+        </View>
+
+        {/* CTA */}
+        <TouchableOpacity style={styles.cta} activeOpacity={0.8} disabled>
+          <Text style={styles.ctaText}>Démarrer une ride</Text>
+        </TouchableOpacity>
+
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  safe: {
+    flex: 1,
+    backgroundColor: Novaride.bg,
+  },
+  scroll: {
+    padding: 24,
+    gap: 16,
+  },
+  header: {
+    marginBottom: 8,
+  },
+  brand: {
+    fontSize: 42,
+    fontWeight: '900',
+    letterSpacing: 6,
+    color: Novaride.primary,
+  },
+  tagline: {
+    fontSize: 13,
+    letterSpacing: 2,
+    color: Novaride.textMuted,
+    marginTop: 4,
+    textTransform: 'uppercase',
+  },
+  card: {
+    backgroundColor: Novaride.panel,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: Novaride.border,
+    gap: 12,
+  },
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  cardTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: Novaride.textMuted,
+  },
+  muted: {
+    fontSize: 14,
+    color: Novaride.textMuted,
+  },
+  error: {
+    fontSize: 14,
+    color: '#ef4444',
+  },
+  coords: {
+    gap: 8,
+  },
+  coordRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 12,
+  },
+  coordLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 2,
+    color: Novaride.secondary,
+    width: 32,
+  },
+  coordValue: {
+    fontSize: 22,
+    fontWeight: '300',
+    color: Novaride.textMain,
+    letterSpacing: 1,
+  },
+  cta: {
+    marginTop: 8,
+    backgroundColor: Novaride.primary,
+    borderRadius: 12,
+    paddingVertical: 18,
+    alignItems: 'center',
+    opacity: 0.4,
+  },
+  ctaText: {
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: '#fff',
   },
 });
