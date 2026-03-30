@@ -81,8 +81,15 @@ export default function HomeScreen() {
   }
 
   async function stopRide() {
-    watchRef.current?.remove();
-    watchRef.current = null;
+    try {
+      if (watchRef.current && typeof watchRef.current.remove === 'function') {
+        watchRef.current.remove();
+      }
+    } catch {
+      // ignore — remove() peut échouer sur Expo Web
+    } finally {
+      watchRef.current = null;
+    }
 
     const endTime = new Date();
     setIsRiding(false);
